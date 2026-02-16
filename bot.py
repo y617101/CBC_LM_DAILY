@@ -30,10 +30,7 @@ def send_telegram(text):
         timeout=30
     )
     print("Telegram status:", r.status_code, flush=True)
-    print("Telegram response body:", r.text, flush=True)
-    
-    if r.status_code != 200:
-        return
+    r.raise_for_status()
 
 
 
@@ -322,20 +319,11 @@ def resolve_symbol(pos, which):
 
 
 def main():
-    mode = os.getenv("REPORT_MODE", "DAILY").upper()
-
-    if mode == "WEEKLY":
-        report = build_daily_report()
-    else:
-        report = build_daily_report()
-
-    send_telegram(report)
-
-
 
     safe = os.environ.get("SAFE_ADDRESS", "SAFE_NOT_SET")
     if safe == "SAFE_NOT_SET":
         send_telegram("SAFE\nSAFE_NOT_SET\n\nSAFE_ADDRESS をRenderのEnvironment Variablesに入れてね")
+        return
 
     positions_open = fetch_positions(safe, active=True)
     positions_exited = fetch_positions(safe, active=False)
