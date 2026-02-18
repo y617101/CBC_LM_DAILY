@@ -274,6 +274,12 @@ def calc_fee_usd_24h_from_cash_flows(pos_list_all, now_dt):
                 continue
 
             t = _lower(cf.get("type"))
+            dbg_fee = os.environ.get("DBG_FEE") == "1"
+            if dbg_fee:
+                ts_raw = cf.get("timestamp")
+                amt_usd = cf.get("amount_usd")
+                print("DBG CF:", "type=", t, "ts=", ts_raw, "amount_usd=", amt_usd, flush=True)
+
             # ✅ 確定仕様：fees-collected のみ
             if t != "fees-collected":
                 continue
@@ -332,8 +338,11 @@ def calc_fee_usd_24h_from_cash_flows(pos_list_all, now_dt):
             if dbg:
                 print(f"DBG HIT nft={nft_id} ts={ts_dt} usd={amt_usd}", flush=True)
 
+    if os.environ.get("DBG_FEE") == "1":
+        print("DBG fee_count(total_count) =", total_count, flush=True)
+        print("DBG fee_by_nft keys =", list(fee_by_nft.keys()), flush=True)
+        
     return total, total_count, fee_by_nft, count_by_nft, start_dt, end_dt
-
 
 def resolve_symbol(pos, which):
     # which: "token0" or "token1"
