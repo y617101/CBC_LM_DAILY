@@ -280,8 +280,8 @@ def calc_fee_usd_24h_from_cash_flows(pos_list_all, now_dt):
                 amt_usd = cf.get("amount_usd")
                 print("DBG CF:", "type=", t, "ts=", ts_raw, "amount_usd=", amt_usd, flush=True)
 
-            # ✅ 確定仕様：fees-collected のみ
-            if t != "fees-collected":
+            # ✅ 確定手数料として扱うtypeを拡張
+            if t not in ["fees-collected", "claimed-fees", "auto-compound"]:
                 continue
 
             ts_dt = _parse_cf_dt(cf)
