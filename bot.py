@@ -206,6 +206,44 @@ def _to_ts_sec(ts):
         return ts_i
     except:
         return None
+def _parse_cf_dt(cf):
+    """cash_flowsのtimestampをJSTのdatetimeに変換（数値sec/ms・ISO文字列対応）"""
+    ts = cf.get("timestamp")
+
+    ts_sec = _to_ts_sec(ts)
+    if ts_sec is not None:
+        return datetime.fromtimestamp(ts_sec, JST)
+
+    if isinstance(ts, str) and ts.strip().isdigit():
+        ts_sec = _to_ts_sec(int(ts.strip()))
+        if ts_sec is not None:
+            return datetime.fromtimestamp(ts_sec, JST)
+
+    if isinstance(ts, str):
+        s = ts.strip().replace("Z", "+00:00")
+        try:
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(JST)
+        except:
+            return None
+
+    return None
+
+
+def _pick_usd_from_cf(cf):
+    """Fees Collected のUSD値を優先順で拾う"""
+    for k in (
+        "hodl_value", "hodlValue",
+        "amount_usd", "amountUsd",
+        "value_usd", "valueUsd",
+        "usd", "usd_value", "usdValue",
+    ):
+        v = to_f(cf.get(k))
+        if v is not None:
+            return abs(float(v))
+    return None
 
 def calc_fee_usd_24h_from_cash_flows(pos_list_all, now_dt):
     end_dt = now_dt.replace(hour=9, minute=0, second=0, microsecond=0)
@@ -218,8 +256,9 @@ def calc_fee_usd_24h_from_cash_flows(pos_list_all, now_dt):
     fee_by_nft = {}
     count_by_nft = {}
 
-    # DBG: 24h窓で拾えたtypeを確認する
-    dbg_types = set()
+    dbg = os.environ.get("DBG_FEE") == "1"
+    if dbg:
+        print("DBG 24H WINDOW:", start_dt, "->", end_dt, flush=True)
 
     for pos in (pos_list_all or []):
         if not isinstance(pos, dict):
@@ -235,51 +274,66 @@ def calc_fee_usd_24h_from_cash_flows(pos_list_all, now_dt):
                 continue
 
             t = _lower(cf.get("type"))
-            if t:
-                dbg_types.add(t)
-
-            # ✅ いまはまず「確定手数料type候補」を見つけたいので、
-            #    ここは一旦ゆるくして、fee/collect/claim を含むものだけ拾ってDBGする
-            if not any(k in t for k in ("fee", "collect", "claim")):
+            # ✅ 確定仕様：fees-collected のみ
+            if t != "fees-collected":
                 continue
 
-            ts = _to_ts_sec(cf.get("timestamp"))
-            if ts is None:
+            ts_dt = _parse_cf_dt(cf)
+            if ts_dt is None:
+                if dbg:
+                    print("DBG fees-collected but timestamp parse failed:", cf.get("timestamp"), flush=True)
                 continue
 
-            ts_dt = datetime.fromtimestamp(ts, JST)
             if ts_dt < start_dt or ts_dt >= end_dt:
+                if dbg:
+                    print("DBG fees-collected out of window:", ts_dt, flush=True)
                 continue
 
-            # まずUSD直があれば優先
-            amt_usd = to_f(cf.get("amount_usd"))
+            # ✅ まずUSD直（HODL value等）を拾う
+            amt_usd = _pick_usd_from_cf(cf)
 
-            # 無ければ prices + amount0/1系で推定
+            # 無ければ prices + amount0/1 で推定（最後の保険）
             if amt_usd is None:
                 prices = cf.get("prices") or {}
                 p0 = to_f((prices.get("token0") or {}).get("usd")) or 0.0
                 p1 = to_f((prices.get("token1") or {}).get("usd")) or 0.0
 
-                q0 = to_f(cf.get("collected_fees_token0")) or to_f(cf.get("claimed_token0")) or to_f(cf.get("fees0")) or to_f(cf.get("amount0")) or 0.0
-                q1 = to_f(cf.get("collected_fees_token1")) or to_f(cf.get("claimed_token1")) or to_f(cf.get("fees1")) or to_f(cf.get("amount1")) or 0.0
+                # よくある候補を広めに拾う
+                q0 = (
+                    to_f(cf.get("collected_fees_token0")) or
+                    to_f(cf.get("claimed_token0")) or
+                    to_f(cf.get("fees0")) or
+                    to_f(cf.get("amount0")) or
+                    to_f(cf.get("token0_amount")) or
+                    0.0
+                )
+                q1 = (
+                    to_f(cf.get("collected_fees_token1")) or
+                    to_f(cf.get("claimed_token1")) or
+                    to_f(cf.get("fees1")) or
+                    to_f(cf.get("amount1")) or
+                    to_f(cf.get("token1_amount")) or
+                    0.0
+                )
 
-                amt_usd = abs(q0) * p0 + abs(q1) * p1
+                est = abs(q0) * p0 + abs(q1) * p1
+                amt_usd = est if est > 0 else None
 
-            # ガード
-            try:
-                amt_usd = float(amt_usd)
-            except Exception:
+            if amt_usd is None or not (amt_usd > 0):
+                if dbg:
+                    print("DBG fees-collected in window but USD unresolved. cf keys:", list(cf.keys())[:30], flush=True)
                 continue
-            if not (amt_usd > 0):
-                continue
 
-            total += amt_usd
+            total += float(amt_usd)
             total_count += 1
-            fee_by_nft[nft_id] = fee_by_nft.get(nft_id, 0.0) + amt_usd
+            fee_by_nft[nft_id] = fee_by_nft.get(nft_id, 0.0) + float(amt_usd)
             count_by_nft[nft_id] = count_by_nft.get(nft_id, 0) + 1
 
+            if dbg:
+                print(f"DBG HIT nft={nft_id} ts={ts_dt} usd={amt_usd}", flush=True)
 
     return total, total_count, fee_by_nft, count_by_nft, start_dt, end_dt
+
 
 def resolve_symbol(pos, which):
     # which: "token0" or "token1"
@@ -318,7 +372,9 @@ def resolve_symbol(pos, which):
     return "TOKEN"
 
 
-def main():
+def main()
+print("DBG_FEE ENV =", os.environ.get("DBG_FEE"), flush=True)
+
 
     safe = os.environ.get("SAFE_ADDRESS", "SAFE_NOT_SET")
     if safe == "SAFE_NOT_SET":
