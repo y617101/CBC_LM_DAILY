@@ -377,8 +377,9 @@ def resolve_symbol(pos, which):
                 m = ADDRESS_SYMBOL_MAP.get(str(addr).strip().lower())
                 if m:
                     return m
-
+                    
     return "TOKEN"
+
 def main():
     print("DBG_FEE ENV =", os.environ.get("DBG_FEE"), flush=True)
 
@@ -403,7 +404,6 @@ def main():
 
     print("pos_open:", pos_open_count, "pos_exited:", pos_exited_count, "xp:", xp_count, flush=True)
 
-    # --- 24h fee (cash_flowsベース) ---
     pos_list_all = []
     if isinstance(pos_list_open, list):
         pos_list_all += pos_list_open
@@ -413,7 +413,6 @@ def main():
     test_now = datetime.now(JST)
     fee_usd, fee_count, fee_by_nft, count_by_nft, start_dt, end_dt = calc_fee_usd_24h_from_cash_flows(pos_list_all, test_now)
 
-    # --- NFT blocks (active only) ---
     nft_lines = []
     net_total = 0.0
     uncollected_total = 0.0
@@ -426,23 +425,19 @@ def main():
         if in_range is False:
             status = "OUT OF RANGE"
 
-        # Net (USD)
         net = calc_net_usd(pos)
         if net is not None:
             net_total += float(net)
 
-        # Uncollected (USD)
         fees_value = to_f(pos.get("fees_value"), 0.0)
         uncollected_total += fees_value
 
-        # Uncollected (token amounts)
         u0 = pos.get("uncollected_fees0")
         u1 = pos.get("uncollected_fees1")
 
         sym0 = resolve_symbol(pos, "token0")
         sym1 = resolve_symbol(pos, "token1")
 
-        # Fee APR（表示はpos.performance.hodl.fee_apr）
         fee_apr_ui = to_f(((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr"))
 
         nft_lines.append(
