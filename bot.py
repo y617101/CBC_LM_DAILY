@@ -380,7 +380,7 @@ def resolve_symbol(pos, which):
 
     return "TOKEN"
 def main():
-        print("DBG_FEE ENV =", os.environ.get("DBG_FEE"), flush=True)
+    print("DBG_FEE ENV =", os.environ.get("DBG_FEE"), flush=True)
 
     safe = os.environ.get("SAFE_ADDRESS", "SAFE_NOT_SET")
     if safe == "SAFE_NOT_SET":
@@ -390,7 +390,6 @@ def main():
     positions_open = fetch_positions(safe, active=True)
     positions_exited = fetch_positions(safe, active=False)
     xp_ops = fetch_xp_operations(safe)
-
 
     pos_list_open = positions_open if isinstance(positions_open, list) else positions_open.get("positions", positions_open.get("data", []))
     pos_list_exited = positions_exited if isinstance(positions_exited, list) else positions_exited.get("positions", positions_exited.get("data", []))
@@ -404,7 +403,6 @@ def main():
 
     print("pos_open:", pos_open_count, "pos_exited:", pos_exited_count, "xp:", xp_count, flush=True)
 
-
     # --- 24h fee (cash_flowsベース) ---
     pos_list_all = []
     if isinstance(pos_list_open, list):
@@ -415,7 +413,6 @@ def main():
     test_now = datetime.now(JST)
     fee_usd, fee_count, fee_by_nft, count_by_nft, start_dt, end_dt = calc_fee_usd_24h_from_cash_flows(pos_list_all, test_now)
 
-
     # --- NFT blocks (active only) ---
     nft_lines = []
     net_total = 0.0
@@ -424,7 +421,6 @@ def main():
     for pos in (pos_list_open if isinstance(pos_list_open, list) else []):
         nft_id = str(pos.get("nft_id", "UNKNOWN"))
 
-
         in_range = pos.get("in_range")
         status = "ACTIVE"
         if in_range is False:
@@ -432,23 +428,8 @@ def main():
 
         # Net (USD)
         net = calc_net_usd(pos)
-        if not os.environ.get("DBG_NET_ONCE"):
-            os.environ["DBG_NET_ONCE"] = "1"
-
         if net is not None:
             net_total += float(net)
-
-        
-        # Fee APR（A方式）
-        fee_usd_nft = fee_by_nft.get(str(nft_id), 0.0)
-        fee_apr = calc_fee_apr_a(fee_usd_nft, net)
-        
-        fee_apr_ui = to_f(
-            ((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr")
-        )
-
-
-
 
         # Uncollected (USD)
         fees_value = to_f(pos.get("fees_value"), 0.0)
@@ -457,20 +438,12 @@ def main():
         # Uncollected (token amounts)
         u0 = pos.get("uncollected_fees0")
         u1 = pos.get("uncollected_fees1")
-        
+
         sym0 = resolve_symbol(pos, "token0")
         sym1 = resolve_symbol(pos, "token1")
 
-        
-        # ここに入れる（sym0/sym1 の直前）
-
-
-
-        # Fee APR（A方式）: 現時点はNFT別に確定手数料を安全に紐づけできない可能性があるため N/A
-
-        fee_apr_ui = to_f(
-            ((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr")
-        )
+        # Fee APR（表示はpos.performance.hodl.fee_apr）
+        fee_apr_ui = to_f(((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr"))
 
         nft_lines.append(
             f"\nNFT {nft_id}\n"
@@ -483,9 +456,7 @@ def main():
             f"Fee APR: {fmt_pct(fee_apr_ui)}\n"
         )
 
-
     safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
-   
 
     report = (
         "CBC Liquidity Mining — Daily\n"
@@ -506,4 +477,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
