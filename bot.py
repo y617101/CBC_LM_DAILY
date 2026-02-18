@@ -370,10 +370,9 @@ def resolve_symbol(pos, which):
                     return m
 
     return "TOKEN"
-
-
+    
 def main():
-print("DBG_FEE ENV =", os.environ.get("DBG_FEE"), flush=True)
+    print("DBG_FEE ENV =", os.environ.get("DBG_FEE"), flush=True)
 
 
     safe = os.environ.get("SAFE_ADDRESS", "SAFE_NOT_SET")
