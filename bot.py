@@ -506,3 +506,4 @@ def resolve_symbol(pos, which):
 
 if __name__ == "__main__":
     main()
+
