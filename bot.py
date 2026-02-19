@@ -466,7 +466,7 @@ try:
             sh = gc.open_by_key(sheet_id)
             ws = sh.worksheet(tab_name)
 
-            period_end_str = end_dt.strftime("%Y-%m-%d")
+            period_end_str = datetime.now(JST).strftime("%Y-%m-%d")
             ws.append_row([period_end_str, round(fee_usd, 2)])
 
             print("✅ Daily written to Sheets", flush=True)
