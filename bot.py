@@ -432,6 +432,7 @@ def main():
     safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
     
     report = (
+        
         "CBC Liquidity Mining — Daily\n"
         f"Period End: {now_str} JST\n"
         "────────────────\n"
@@ -447,36 +448,29 @@ def main():
     
         #send_telegram(report)
 print("DEBUG: entering sheets block", flush=True)
-
 try:
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
     tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
 
     if sheet_id:
         creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
-
         if creds_json:
             creds_dict = json.loads(creds_json)
 
             scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-            creds = Credentials.from_service_account_info(
-                creds_dict, scopes=scopes
-            )
+            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
 
             gc = gspread.authorize(creds)
             sh = gc.open_by_key(sheet_id)
             ws = sh.worksheet(tab_name)
 
-            period_end_str = datetime.now(JST).strftime("%Y-%m-%d")
-            ws.append_row([period_end_str, round(fee_usd, 2)])
+            period_end_str = end_dt.strftime("%Y-%m-%d %H:%M")
+            ws.append_row([period_end_str, safe, round(fee_usd, 2), int(fee_count)])
 
             print("✅ Daily written to Sheets", flush=True)
 
 except Exception as e:
     print("❌ Sheets write error:", e, flush=True)
-
-
-
 
 
 if __name__ == "__main__":
