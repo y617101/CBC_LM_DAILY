@@ -458,7 +458,9 @@ try:
             creds_dict = json.loads(creds_json)
 
             scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+            creds = Credentials.from_service_account_info(
+                creds_dict, scopes=scopes
+            )
 
             gc = gspread.authorize(creds)
             sh = gc.open_by_key(sheet_id)
@@ -471,6 +473,7 @@ try:
 
 except Exception as e:
     print("❌ Sheets write error:", e, flush=True)
+
 
 
 
