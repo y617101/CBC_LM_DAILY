@@ -428,7 +428,6 @@ def main():
             f"Fee APR: {fmt_pct(fee_apr_ui)}\n"
         )
 
-
 safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
 
 report = (
@@ -444,7 +443,6 @@ report = (
     f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
     + "".join(nft_lines)
 )
-
 
     #send_telegram(report)
 print("DEBUG: report built OK", flush=True)
