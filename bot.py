@@ -445,18 +445,15 @@ def main():
     )
     
         #send_telegram(report)
-    print("DEBUG: report built OK", flush=True)
-    
-    
-    # === Google Sheets Daily Log Write ===
-    print("DEBUG: entering sheets block", flush=True)
-    print("DBG end_dt exists?", "end_dt" in locals(), flush=True)
-    try:
-        sheet_id = os.getenv("GOOGLE_SHEET_ID")
-        tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
+print("DEBUG: entering sheets block", flush=True)
+
+try:
+    sheet_id = os.getenv("GOOGLE_SHEET_ID")
+    tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
 
     if sheet_id:
         creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+
         if creds_json:
             creds_dict = json.loads(creds_json)
 
@@ -468,12 +465,14 @@ def main():
             ws = sh.worksheet(tab_name)
 
             period_end_str = end_dt.strftime("%Y-%m-%d")
-
             ws.append_row([period_end_str, round(fee_usd, 2)])
+
             print("✅ Daily written to Sheets", flush=True)
 
-    except Exception as e:
+except Exception as e:
     print("❌ Sheets write error:", e, flush=True)
+
+
 
 
 if __name__ == "__main__":
