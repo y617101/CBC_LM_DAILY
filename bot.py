@@ -431,7 +431,7 @@ def main():
 
     safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
    
-
+print("DEBUG: before report build", flush=True)
     report = (
         "CBC Liquidity Mining — Daily\n"
         f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
@@ -447,8 +447,11 @@ def main():
     )
 
     #send_telegram(report)
+print("DEBUG: report built OK", flush=True)
+
 
 # === Google Sheets Daily Log Write ===
+print("DEBUG: entering sheets block", flush=True)
 try:
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
     tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
