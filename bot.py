@@ -326,29 +326,36 @@ def resolve_symbol(pos, which):
 
 
 def main():
-
-    safe = os.environ.get("SAFE_ADDRESS", "SAFE_NOT_SET")
+    # --- SAFE ---
+    safe = os.getenv("SAFE_ADDRESS", "SAFE_NOT_SET")
     if safe == "SAFE_NOT_SET":
         send_telegram("SAFE\nSAFE_NOT_SET\n\nSAFE_ADDRESS をRenderのEnvironment Variablesに入れてね")
         return
 
+    # --- Fetch ---
     positions_open = fetch_positions(safe, active=True)
     positions_exited = fetch_positions(safe, active=False)
-    xp_ops = fetch_xp_operations(safe)
+    xp_ops = fetch_xp_operations(safe)  # 互換用（今は表示に使わない）
 
+    pos_list_open = (
+        positions_open
+        if isinstance(positions_open, list)
+        else positions_open.get("positions", positions_open.get("data", []))
+    )
+    pos_list_exited = (
+        positions_exited
+        if isinstance(positions_exited, list)
+        else positions_exited.get("positions", positions_exited.get("data", []))
+    )
 
-    pos_list_open = positions_open if isinstance(positions_open, list) else positions_open.get("positions", positions_open.get("data", []))
-    pos_list_exited = positions_exited if isinstance(positions_exited, list) else positions_exited.get("positions", positions_exited.get("data", []))
-
-    uncollected_usd = calc_uncollected_usd_from_positions(pos_list_open)
+    # Debug counts
     xp_list = _as_list(xp_ops)
-
-    pos_open_count = len(pos_list_open) if isinstance(pos_list_open, list) else 0
-    pos_exited_count = len(pos_list_exited) if isinstance(pos_list_exited, list) else 0
-    xp_count = len(xp_list)
-
-    print("pos_open:", pos_open_count, "pos_exited:", pos_exited_count, "xp:", xp_count, flush=True)
-
+    print(
+        "pos_open:", (len(pos_list_open) if isinstance(pos_list_open, list) else 0),
+        "pos_exited:", (len(pos_list_exited) if isinstance(pos_list_exited, list) else 0),
+        "xp:", len(xp_list),
+        flush=True
+    )
 
     # --- 24h fee (cash_flowsベース) ---
     pos_list_all = []
@@ -357,9 +364,10 @@ def main():
     if isinstance(pos_list_exited, list):
         pos_list_all += pos_list_exited
 
-    test_now = datetime.now(JST)
-    fee_usd, fee_count, fee_by_nft, count_by_nft, start_dt, end_dt = calc_fee_usd_24h_from_cash_flows(pos_list_all, test_now)
-
+    now = datetime.now(JST)
+    fee_usd, fee_count, fee_by_nft, count_by_nft, start_dt, end_dt = calc_fee_usd_24h_from_cash_flows(
+        pos_list_all, now
+    )
 
     # --- NFT blocks (active only) ---
     nft_lines = []
@@ -369,31 +377,17 @@ def main():
     for pos in (pos_list_open if isinstance(pos_list_open, list) else []):
         nft_id = str(pos.get("nft_id", "UNKNOWN"))
 
-
         in_range = pos.get("in_range")
-        status = "ACTIVE"
-        if in_range is False:
-            status = "OUT OF RANGE"
+        status = "OUT OF RANGE" if in_range is False else "ACTIVE"
 
         # Net (USD)
         net = calc_net_usd(pos)
-        if not os.environ.get("DBG_NET_ONCE"):
-            os.environ["DBG_NET_ONCE"] = "1"
-
         if net is not None:
             net_total += float(net)
 
-        
-        # Fee APR（A方式）
-        fee_usd_nft = fee_by_nft.get(str(nft_id), 0.0)
+        # 方式A：NFT別 Fee APR
+        fee_usd_nft = float(fee_by_nft.get(nft_id, 0.0) or 0.0)
         fee_apr = calc_fee_apr_a(fee_usd_nft, net)
-        
-        fee_apr_ui = to_f(
-            ((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr")
-        )
-
-
-
 
         # Uncollected (USD)
         fees_value = to_f(pos.get("fees_value"), 0.0)
@@ -402,20 +396,8 @@ def main():
         # Uncollected (token amounts)
         u0 = pos.get("uncollected_fees0")
         u1 = pos.get("uncollected_fees1")
-        
         sym0 = resolve_symbol(pos, "token0")
         sym1 = resolve_symbol(pos, "token1")
-
-        
-        # ここに入れる（sym0/sym1 の直前）
-
-
-
-        # Fee APR（A方式）: 現時点はNFT別に確定手数料を安全に紐づけできない可能性があるため N/A
-
-        fee_apr_ui = to_f(
-            ((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr")
-        )
 
         nft_lines.append(
             f"\nNFT {nft_id}\n"
@@ -425,16 +407,16 @@ def main():
             f"Uncollected Fees:\n"
             f"{to_f(u0, 0.0):.8f} {sym0}\n"
             f"{to_f(u1, 0.0):.6f} {sym1}\n"
-            f"Fee APR: {fmt_pct(fee_apr_ui)}\n"
+            f"Fee APR: {fmt_pct(fee_apr)}\n"
         )
 
-    now_str = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
+    # SAFE合算APR（方式A）
     safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
-    
+
+    # --- Report ---
     report = (
-        
         "CBC Liquidity Mining — Daily\n"
-        f"Period End: {now_str} JST\n"
+        f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
         "────────────────\n"
         f"SAFE\n{safe}\n\n"
         f"・24h確定手数料 {fmt_money(fee_usd)}\n"
@@ -442,43 +424,41 @@ def main():
         f"・Net合算 {fmt_money(net_total)}\n"
         f"・未回収手数料 {fmt_money(uncollected_total)}\n"
         f"・Transactions {fee_count}\n"
-        f"Period 24h window JST\n"
+        f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
         + "".join(nft_lines)
     )
-    
-        #send_telegram(report)
-# === Google Sheets Daily Log Write ===
-print("DEBUG: entering sheets block", flush=True)
-try:
-    sheet_id = os.getenv("GOOGLE_SHEET_ID")
-    tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
 
-    # ★ここ重要：RenderはGOOGLE_CREDENTIALSで入れてるので、両対応にする
-    creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS")
+    # Telegram（必要ならON）
+    # send_telegram(report)
 
-    if not sheet_id:
-        raise ValueError("GOOGLE_SHEET_ID is empty")
-    if not creds_json:
-        raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_CREDENTIALS is empty")
+    # --- Google Sheets Daily Log Write（main内で実行） ---
+    print("DEBUG: entering sheets block", flush=True)
+    try:
+        sheet_id = os.getenv("GOOGLE_SHEET_ID")
+        tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
+        creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS")
 
-    creds_dict = json.loads(creds_json)
-    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        if not sheet_id:
+            raise ValueError("GOOGLE_SHEET_ID is empty")
+        if not creds_json:
+            raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_CREDENTIALS is empty")
 
-    gc = gspread.authorize(creds)
-    sh = gc.open_by_key(sheet_id)
-    ws = sh.worksheet(tab_name)  # tab名が無いと WorksheetNotFound になる
+        creds_dict = json.loads(creds_json)
+        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
 
-    # end_dt / fee_usd / fee_count / safe は main() で先に作られている前提
-    period_end_str = end_dt.strftime("%Y-%m-%d %H:%M")  # JST想定
-    ws.append_row([period_end_str, safe, round(fee_usd, 2), int(fee_count)])
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(sheet_id)
+        ws = sh.worksheet(tab_name)
 
-    print("✅ Daily written to Sheets", flush=True)
+        period_end_str = end_dt.strftime("%Y-%m-%d %H:%M")  # JST想定
+        ws.append_row([period_end_str, safe, round(float(fee_usd), 2), int(fee_count)])
 
-except Exception as e:
-    print("❌ Sheets write error:", e, flush=True)
+        print("✅ Daily written to Sheets", flush=True)
+
+    except Exception as e:
+        print("❌ Sheets write error:", e, flush=True)
 
 
 if __name__ == "__main__":
     main()
-
