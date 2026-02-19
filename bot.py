@@ -429,7 +429,7 @@ def main():
     )
 
     # Telegram（必要ならON）
-     send_telegram(report)
+    send_telegram(report)
 
             # --- Google Sheets Daily Log Write（main内で実行） ---
             print("DEBUG: entering sheets block", flush=True)
