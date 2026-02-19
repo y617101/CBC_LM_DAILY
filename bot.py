@@ -428,11 +428,12 @@ def main():
             f"Fee APR: {fmt_pct(fee_apr_ui)}\n"
         )
 
+    now_str = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
     safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
     
     report = (
         "CBC Liquidity Mining — Daily\n"
-        f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
+        f"Period End: {now_str} JST\n"
         "────────────────\n"
         f"SAFE\n{safe}\n\n"
         f"・24h確定手数料 {fmt_money(fee_usd)}\n"
@@ -440,7 +441,7 @@ def main():
         f"・Net合算 {fmt_money(net_total)}\n"
         f"・未回収手数料 {fmt_money(uncollected_total)}\n"
         f"・Transactions {fee_count}\n"
-        f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
+        f"Period 24h window JST\n"
         + "".join(nft_lines)
     )
     
