@@ -439,7 +439,7 @@ def main():
         + "".join(nft_lines)
     )
 
-    send_telegram(report)
+    #send_telegram(report)
         # === Google Sheets Daily Log Write ===
     try:
         import os
