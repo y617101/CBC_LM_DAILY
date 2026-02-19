@@ -429,7 +429,6 @@ def main():
     )
 
     send_telegram(report)
-
     # --- Google Sheets Daily Log Write（main内で実行） ---
     print("DEBUG: entering sheets block", flush=True)
     try:
@@ -457,7 +456,6 @@ def main():
 
     except Exception as e:
         print("❌ Sheets write error:", e, flush=True)
-
 
 if __name__ == "__main__":
     main()
