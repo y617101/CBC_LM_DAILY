@@ -1,5 +1,10 @@
 import os
+import json
 import requests
+import gspread
+from google.oauth2.service_account import Credentials
+from datetime import datetime
+
 
 # ================================
 # Token Symbol Map (Base)
@@ -442,9 +447,6 @@ def main():
     #send_telegram(report)
         # === Google Sheets Daily Log Write ===
     try:
-        import os
-        import gspread
-        import json
         from google.oauth2.service_account import Credentials
 
         sheet_id = os.getenv("GOOGLE_SHEET_ID")
