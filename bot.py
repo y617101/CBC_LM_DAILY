@@ -1,9 +1,9 @@
 import os
 import json
-import requests
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+
 
 
 # ================================
@@ -445,37 +445,32 @@ def main():
     )
 
     #send_telegram(report)
-        # === Google Sheets Daily Log Write ===
-    try:
-        from google.oauth2.service_account import Credentials
 
-        sheet_id = os.getenv("GOOGLE_SHEET_ID")
-        tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
+# === Google Sheets Daily Log Write ===
+try:
+    sheet_id = os.getenv("GOOGLE_SHEET_ID")
+    tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
 
-        if sheet_id:
-            creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
-            if creds_json:
-                creds_dict = json.loads(creds_json)
+    if sheet_id:
+        creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+        if creds_json:
+            creds_dict = json.loads(creds_json)
 
-                scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-                creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+            scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
 
-                gc = gspread.authorize(creds)
-                sh = gc.open_by_key(sheet_id)
-                ws = sh.worksheet(tab_name)
+            gc = gspread.authorize(creds)
+            sh = gc.open_by_key(sheet_id)
+            ws = sh.worksheet(tab_name)
 
-                # JST Period End を保存
-                period_end_str = end_dt.strftime("%Y-%m-%d")
+            period_end_str = end_dt.strftime("%Y-%m-%d")
 
-                ws.append_row([
-                    period_end_str,
-                    round(fee_usd, 2)
-                ])
+            ws.append_row([period_end_str, round(fee_usd, 2)])
+            print("✅ Daily written to Sheets", flush=True)
 
-                print("✅ Daily written to Sheets")
+except Exception as e:
+    print("❌ Sheets write error:", e, flush=True)
 
-    except Exception as e:
-        print("❌ Sheets write error:", e)
 
 if __name__ == "__main__":
     main()
