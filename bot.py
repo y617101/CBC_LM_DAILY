@@ -431,33 +431,33 @@ def main():
     # Telegram（必要ならON）
     # send_telegram(report)
 
-    # --- Google Sheets Daily Log Write（main内で実行） ---
-    print("DEBUG: entering sheets block", flush=True)
-    try:
-        sheet_id = os.getenv("GOOGLE_SHEET_ID")
-        tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
-        creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS")
-
-        if not sheet_id:
-            raise ValueError("GOOGLE_SHEET_ID is empty")
-        if not creds_json:
-            raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_CREDENTIALS is empty")
-
-        creds_dict = json.loads(creds_json)
-        scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-
-        gc = gspread.authorize(creds)
-        sh = gc.open_by_key(sheet_id)
-        ws = sh.worksheet(tab_name)
-
-        period_end_str = end_dt.strftime("%Y-%m-%d %H:%M")  # JST想定
-        ws.append_row([period_end_str, safe, round(float(fee_usd), 2), int(fee_count)])
-
-        print("✅ Daily written to Sheets", flush=True)
-
-    except Exception as e:
-        print("❌ Sheets write error:", e, flush=True)
+            # --- Google Sheets Daily Log Write（main内で実行） ---
+            print("DEBUG: entering sheets block", flush=True)
+            try:
+                sheet_id = os.getenv("GOOGLE_SHEET_ID")
+                tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
+                creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS")
+    
+            if not sheet_id:
+                raise ValueError("GOOGLE_SHEET_ID is empty")
+            if not creds_json:
+                raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_CREDENTIALS is empty")
+    
+            creds_dict = json.loads(creds_json)
+            scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    
+            gc = gspread.authorize(creds)
+            sh = gc.open_by_key(sheet_id)
+            ws = sh.worksheet(tab_name)
+    
+            period_end_str = end_dt.strftime("%Y-%m-%d %H:%M")  # JST想定
+            ws.append_row([period_end_str, safe, round(float(fee_usd), 2), int(fee_count)])
+    
+            print("✅ Daily written to Sheets", flush=True)
+    
+        except Exception as e:
+            print("❌ Sheets write error:", e, flush=True)
 
 
 if __name__ == "__main__":
