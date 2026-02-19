@@ -428,28 +428,28 @@ def main():
             f"Fee APR: {fmt_pct(fee_apr_ui)}\n"
         )
 
-safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
-
-report = (
-    "CBC Liquidity Mining — Daily\n"
-    f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
-    "────────────────\n"
-    f"SAFE\n{safe}\n\n"
-    f"・24h確定手数料 {fmt_money(fee_usd)}\n"
-    f"・Fee APR(SAFE) {fmt_pct(safe_fee_apr)}\n"
-    f"・Net合算 {fmt_money(net_total)}\n"
-    f"・未回収手数料 {fmt_money(uncollected_total)}\n"
-    f"・Transactions {fee_count}\n"
-    f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
-    + "".join(nft_lines)
-)
-
-    #send_telegram(report)
-print("DEBUG: report built OK", flush=True)
-
-
-# === Google Sheets Daily Log Write ===
-print("DEBUG: entering sheets block", flush=True)
+    safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
+    
+    report = (
+        "CBC Liquidity Mining — Daily\n"
+        f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
+        "────────────────\n"
+        f"SAFE\n{safe}\n\n"
+        f"・24h確定手数料 {fmt_money(fee_usd)}\n"
+        f"・Fee APR(SAFE) {fmt_pct(safe_fee_apr)}\n"
+        f"・Net合算 {fmt_money(net_total)}\n"
+        f"・未回収手数料 {fmt_money(uncollected_total)}\n"
+        f"・Transactions {fee_count}\n"
+        f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
+        + "".join(nft_lines)
+    )
+    
+        #send_telegram(report)
+    print("DEBUG: report built OK", flush=True)
+    
+    
+    # === Google Sheets Daily Log Write ===
+    print("DEBUG: entering sheets block", flush=True)
 try:
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
     tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
