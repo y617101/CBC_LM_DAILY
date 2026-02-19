@@ -450,9 +450,9 @@ def main():
     
     # === Google Sheets Daily Log Write ===
     print("DEBUG: entering sheets block", flush=True)
-try:
-    sheet_id = os.getenv("GOOGLE_SHEET_ID")
-    tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
+    try:
+        sheet_id = os.getenv("GOOGLE_SHEET_ID")
+        tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
 
     if sheet_id:
         creds_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -471,7 +471,7 @@ try:
             ws.append_row([period_end_str, round(fee_usd, 2)])
             print("✅ Daily written to Sheets", flush=True)
 
-except Exception as e:
+    except Exception as e:
     print("❌ Sheets write error:", e, flush=True)
 
 
