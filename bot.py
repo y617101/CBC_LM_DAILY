@@ -429,22 +429,22 @@ def main():
         )
 
 
-    safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
-   
-print("DEBUG: before report build", flush=True)
-    report = (
-        "CBC Liquidity Mining — Daily\n"
-        f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
-        "────────────────\n"
-        f"SAFE\n{safe}\n\n"
-        f"・24h確定手数料 {fmt_money(fee_usd)}\n"
-        f"・Fee APR(SAFE) {fmt_pct(safe_fee_apr)}\n"
-        f"・Net合算 {fmt_money(net_total)}\n"
-        f"・未回収手数料 {fmt_money(uncollected_total)}\n"
-        f"・Transactions {fee_count}\n"
-        f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
-        + "".join(nft_lines)
-    )
+safe_fee_apr = calc_fee_apr_a(fee_usd, net_total)
+
+report = (
+    "CBC Liquidity Mining — Daily\n"
+    f"Period End: {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
+    "────────────────\n"
+    f"SAFE\n{safe}\n\n"
+    f"・24h確定手数料 {fmt_money(fee_usd)}\n"
+    f"・Fee APR(SAFE) {fmt_pct(safe_fee_apr)}\n"
+    f"・Net合算 {fmt_money(net_total)}\n"
+    f"・未回収手数料 {fmt_money(uncollected_total)}\n"
+    f"・Transactions {fee_count}\n"
+    f"・Period {start_dt.strftime('%Y-%m-%d %H:%M')} → {end_dt.strftime('%Y-%m-%d %H:%M')} JST\n"
+    + "".join(nft_lines)
+)
+
 
     #send_telegram(report)
 print("DEBUG: report built OK", flush=True)
