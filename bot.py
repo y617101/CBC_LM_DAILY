@@ -450,6 +450,7 @@ def main():
     
     # === Google Sheets Daily Log Write ===
     print("DEBUG: entering sheets block", flush=True)
+    print("DBG end_dt exists?", "end_dt" in locals(), flush=True)
     try:
         sheet_id = os.getenv("GOOGLE_SHEET_ID")
         tab_name = os.getenv("GOOGLE_SHEET_DAILY_TAB", "DAILY_LOG")
