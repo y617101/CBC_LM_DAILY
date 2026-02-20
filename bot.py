@@ -26,7 +26,12 @@ def send_telegram(text):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     r = requests.post(
         url,
-        json={"chat_id": chat_id, "text": text},
+        json={
+            "chat_id": chat_id,
+            "text": chunk,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True
+        },
         timeout=30
     )
     print("Telegram status:", r.status_code, flush=True)
@@ -441,8 +446,9 @@ def main():
 
         fee_apr_ui = to_f(((pos.get("performance") or {}).get("hodl") or {}).get("fee_apr"))
 
+        position_url = f"https://app.uniswap.org/positions/v3/base/{nft_id}"
         nft_lines.append(
-            f"\nNFT {nft_id}\n"
+            f'\nNFT <a href="{position_url}">{nft_id}</a>\n'
             f"Status: {status}\n"
             f"Net: {fmt_money(net)}\n"
             f"Uncollected: {fees_value:.2f} USD\n"
